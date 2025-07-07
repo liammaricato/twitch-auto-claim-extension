@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "version": "1.0",
+  "name": "TwitchAutoClaim",
+  "content_scripts": [
+    {
+      "matches": ["https://www.twitch.tv/*"],
+      "css": ["style.css"],
+      "js": ["main.js"]
+    }
+  ],
+  "permissions": [
+    "storage"
+  ]
+}
