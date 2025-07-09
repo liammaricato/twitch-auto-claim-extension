@@ -1,10 +1,22 @@
 let timeCount = 0
 let interval = null
 let featureEnabled = localStorage.getItem('twitchAutoClaimEnabled') !== 'false' // Default to true unless explicitly disabled
-let totalPoints = 0
-let totalWatchPoints = 0
-let totalAutoClaimPoints = 0
 let catchNextBonus = false
+
+let sessionPoints = {
+    total: 0,
+    watch: 0,
+    autoClaim: 0
+}
+
+let currentChannel = window.location.pathname.split('/')[1]
+let allTimePoints = localStorage.getItem('twitchAutoClaimAllTimePoints') ? JSON.parse(localStorage.getItem('twitchAutoClaimAllTimePoints')) : {
+    [currentChannel]: {
+        total: 0,
+        watch: 0,
+        autoClaim: 0
+    }
+}
 
 const startInterval = () => {
     if (!featureEnabled) return
@@ -56,18 +68,47 @@ const injectToggle = () => {
     chatSettingsEl.appendChild(featureToggleEl)
 }
 
-const injectTotalPointsData = () => {
+const injectPointsData = () => {
     const modalBodyEl = document.querySelector('.reward-center__content__with-bits-rewards .reward-center-body')
     if (!modalBodyEl) return
 
-    const injectedTotalPointsEl = modalBodyEl.querySelector('.rewards-list').children[0].cloneNode(true)
-    injectedTotalPointsEl.children[0].textContent = `TwitchAutoClaim Total Points (This session)`
-    injectedTotalPointsEl.innerHTML += `
-        <p style="margin-top: 5px;">Total points: ${totalPoints}</p>
-        <p>Total watch points: ${totalWatchPoints}</p>
-        <p>Total auto claim points: ${totalAutoClaimPoints}</p>
+    const injectedSessionPointsEl = modalBodyEl.querySelector('.rewards-list').children[0].cloneNode(true)
+    const injectedAllTimePointsEl = modalBodyEl.querySelector('.rewards-list').children[0].cloneNode(true)
+
+    injectedSessionPointsEl.children[0].textContent = `TwitchAutoClaim Total Points (This session)`
+    injectedSessionPointsEl.innerHTML += `
+        <p style="margin-top: 5px;">Total points: ${sessionPoints.total}</p>
+        <p>Total watch points: ${sessionPoints.watch}</p>
+        <p>Total auto claim points: ${sessionPoints.autoClaim}</p>
     `
-    modalBodyEl.prepend(injectedTotalPointsEl)
+
+    injectedAllTimePointsEl.children[0].textContent = `TwitchAutoClaim Total Points (All time)`
+    injectedAllTimePointsEl.innerHTML += `
+        <p style="margin-top: 5px;">Total points: ${allTimePoints[currentChannel].total}</p>
+        <p>Total watch points: ${allTimePoints[currentChannel].watch}</p>
+        <p>Total auto claim points: ${allTimePoints[currentChannel].autoClaim}</p>
+    `
+
+    modalBodyEl.prepend(injectedSessionPointsEl)
+    modalBodyEl.prepend(injectedAllTimePointsEl)
+}
+
+const updatePointsData = (points) => {
+    sessionPoints.total += parseInt(points)
+    allTimePoints[currentChannel].total += parseInt(points)
+
+    if (catchNextBonus) {
+        sessionPoints.autoClaim += parseInt(points)
+        allTimePoints[currentChannel].autoClaim += parseInt(points)
+        catchNextBonus = false
+        console.log('[TwitchAutoClaim] New auto claim points:', points)
+    } else {
+        sessionPoints.watch += parseInt(points)
+        allTimePoints[currentChannel].watch += parseInt(points)
+        console.log('[TwitchAutoClaim] New watch points:', points)
+    }
+
+    localStorage.setItem('twitchAutoClaimAllTimePoints', JSON.stringify(allTimePoints))
 }
 
 // Set up MutationObserver to watch for chat settings popover
@@ -82,24 +123,12 @@ const observer = new MutationObserver((mutations) => {
                 }
 
                 if (node.matches('.reward-center__content__with-bits-rewards') || node.querySelector('.reward-center__content__with-bits-rewards')) {
-                    setTimeout(injectTotalPointsData, 100)
+                    setTimeout(injectPointsData, 100)
                 }
 
                 if (node.matches('strong.community-points-summary__points-add-text') || node.querySelector('strong.community-points-summary__points-add-text')) {
                     const points = node.textContent.match(/\d+/)[0]
-                    totalPoints += parseInt(points)
-
-                    console.log('[TwitchAutoClaim] Total points:', totalPoints)
-
-                    if (catchNextBonus) {
-                        totalAutoClaimPoints += parseInt(points)
-                        catchNextBonus = false
-                        console.log('[TwitchAutoClaim] Total auto claim points:', totalAutoClaimPoints)
-                    } else {
-                        totalWatchPoints += parseInt(points)
-                        console.log('[TwitchAutoClaim] Total watch points:', totalWatchPoints)
-                    }
-
+                    updatePointsData(parseInt(points))
                 }
             }
         })
