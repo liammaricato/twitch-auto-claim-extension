@@ -3,20 +3,19 @@ let interval = null
 let featureEnabled = localStorage.getItem('twitchAutoClaimEnabled') !== 'false' // Default to true unless explicitly disabled
 let catchNextBonus = false
 
-let sessionPoints = {
+const defaultPointsObject = {
     total: 0,
     watch: 0,
     autoClaim: 0
 }
 
+let sessionPoints = defaultPointsObject
 let currentChannel = window.location.pathname.split('/')[1]
 let allTimePoints = localStorage.getItem('twitchAutoClaimAllTimePoints') ? JSON.parse(localStorage.getItem('twitchAutoClaimAllTimePoints')) : {
-    [currentChannel]: {
-        total: 0,
-        watch: 0,
-        autoClaim: 0
-    }
+    [currentChannel]: defaultPointsObject
 }
+
+if (!allTimePoints[currentChannel]) allTimePoints[currentChannel] = defaultPointsObject
 
 const startInterval = () => {
     if (!featureEnabled) return
