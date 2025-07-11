@@ -71,6 +71,12 @@ const injectPointsData = () => {
     const modalBodyEl = document.querySelector('.reward-center__content__with-bits-rewards .reward-center-body')
     if (!modalBodyEl) return
 
+    if (currentChannel !== window.location.pathname.split('/')[1]) {
+        currentChannel = window.location.pathname.split('/')[1]
+        sessionPoints = defaultPointsObject
+        if (!allTimePoints[currentChannel]) allTimePoints[currentChannel] = defaultPointsObject
+    }
+
     const injectedSessionPointsEl = modalBodyEl.querySelector('.rewards-list').children[0].cloneNode(true)
     const injectedAllTimePointsEl = modalBodyEl.querySelector('.rewards-list').children[0].cloneNode(true)
 
